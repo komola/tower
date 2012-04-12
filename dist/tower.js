@@ -1,12 +1,12 @@
 /*!
- * Tower.js v0.4.0-2
+ * Tower.js v0.4.0-3
  * http://towerjs.org/
  *
  * Copyright 2012, Lance Pollard
  * MIT License.
  * http://towerjs.org/license
  *
- * Date: Sun, 08 Apr 2012 23:37:25 GMT
+ * Date: Wed, 11 Apr 2012 23:15:06 GMT
  */
 (function() {
   var Tower, accounting, action, async, asyncing, cardType, casting, check, format, geo, inflections, inflector, key, module, moment, name, phase, phoneFormats, postalCodeFormats, sanitize, sanitizing, specialProperties, validating, validator, _fn, _fn2, _fn3, _fn4, _fn5, _fn6, _i, _j, _k, _l, _len, _len2, _len3, _len4, _len5, _len6, _len7, _m, _n, _o, _ref, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7,
@@ -22,7 +22,7 @@
 
   global.Tower = Tower = {};
 
-  Tower.version = "0.4.0-2";
+  Tower.version = "0.4.0-3";
 
   Tower.logger = console;
 
@@ -1091,10 +1091,14 @@
 
   async = Tower.modules.async;
 
-  validator.Validator.prototype.error = function(msg) {
-    this._errors.push(msg);
-    return this;
-  };
+  try {
+    validator.Validator.prototype.error = function(msg) {
+      this._errors.push(msg);
+      return this;
+    };
+  } catch (error) {
+    console.log(error);
+  }
 
   accounting = Tower.modules.accounting;
 
@@ -3178,7 +3182,11 @@
     };
 
     Criteria.prototype.build = function(callback) {
-      var attributes, data, item, object, result, store, _k, _len3;
+      return this._build(callback);
+    };
+
+    Criteria.prototype._build = function(callback) {
+      var attributes, data, item, result, store, _k, _len3;
       store = this.store;
       attributes = this.attributes();
       data = this.data;
@@ -3189,9 +3197,9 @@
         if (item instanceof Tower.Model) {
           _.extend(item.attributes, attributes, item.attributes);
         } else {
-          object = store.serializeModel(_.extend({}, attributes, item));
+          item = store.serializeModel(_.extend({}, attributes, item));
         }
-        result.push(object);
+        result.push(item);
       }
       result = this.returnArray ? result : result[0];
       if (callback) callback.call(this, null, result);
@@ -4007,6 +4015,11 @@
         return callback.call(this);
       };
 
+      Criteria.prototype.build = function(callback) {
+        this.compileForCreate();
+        return this._build(callback);
+      };
+
       Criteria.prototype.create = function(callback) {
         var _this = this;
         return this.validate(function(error) {
@@ -4338,6 +4351,27 @@
               if (callback) return callback.call(_this, error, record);
             }
           });
+        });
+      };
+
+      Criteria.prototype.add = function(callback) {
+        var _this = this;
+        return this._build(function(error, record) {
+          if (!error) {
+            return _this.createThroughRelation(record, function(error, throughRecord) {
+              if (callback) return callback.call(_this, error, record);
+            });
+          } else {
+            if (callback) return callback.call(_this, error, record);
+          }
+        });
+      };
+
+      Criteria.prototype.remove = function(callback) {
+        var _this = this;
+        if (!this.relation.idCache) throw new Error;
+        return this.owner.updateAttributes(this.ownerAttributesForDestroy(), function(error) {
+          if (callback) return callback.call(_this, error, _this.data);
         });
       };
 
@@ -5365,6 +5399,9 @@
         case 'values':
         case 'accepts':
           return new this.Set(name, value, attributes, options);
+        case 'uniqueness':
+        case 'unique':
+          return new this.Uniqueness(name, value, attributes, options);
       }
     };
 
@@ -6613,7 +6650,7 @@
     Field.prototype.toParam = function(options) {
       var result;
       if (options == null) options = {};
-      result = Tower.Support.String.parameterize(this.model.constructor.name);
+      result = Tower.Support.String.camelize(this.model.constructor.name, true);
       if (options.parentIndex) result += "[" + options.parentIndex + "]";
       result += "[" + this.attribute + "]";
       if (this.index != null) result += "[" + this.index + "]";
@@ -6621,7 +6658,7 @@
     };
 
     function Field(args, options) {
-      var classes, field, inputType, pattern, value, _base, _base2, _base3, _base4, _base5;
+      var classes, field, inputType, pattern, value, _base, _base2, _base3, _base4, _base5, _base6, _base7;
       this.labelValue = options.label;
       delete options.label;
       Field.__super__.constructor.call(this, args, options);
@@ -6655,7 +6692,7 @@
         (_base = this.labelHTML)["for"] || (_base["for"] = this.inputHTML.id);
         this.labelHTML["class"] = this.addClass(this.labelHTML["class"], [Tower.View.labelClass]);
         if (this.labelValue !== false) {
-          this.labelValue || (this.labelValue = Tower.Support.String.camelize(this.attribute.toString()));
+          this.labelValue || (this.labelValue = _.humanize(this.attribute.toString()));
         }
         if (options.hint !== false) {
           this.errorHTML["class"] = this.addClass(this.errorHTML["class"], [Tower.View.errorClass]);
@@ -6668,7 +6705,8 @@
       if (inputType !== "submit") {
         (_base3 = this.inputHTML).name || (_base3.name = this.toParam());
       }
-      this.value = options.value;
+      (_base4 = this.inputHTML).value || (_base4.value = options.value);
+      (_base5 = this.inputHTML).value || (_base5.value = this.value);
       this.dynamic = options.dynamic === true;
       this.richInput = options.hasOwnProperty("rich_input") ? !!options.rich_input : Tower.View.richInput;
       this.validate = options.validate !== false;
@@ -6683,15 +6721,22 @@
       }
       this.inputHTML["class"] = this.addClass(this.inputHTML["class"], classes);
       if (options.placeholder) this.inputHTML.placeholder = options.placeholder;
-      if (this.inputHTML.value == null) {
-        if (options.hasOwnProperty("value")) this.inputHTML.value = options.value;
-        if (this.inputHTML.value == null) {
-          value = this.model.get(this.attribute);
-          if (value) this.inputHTML.value = value;
+      value = void 0;
+      if (options.hasOwnProperty("value")) value = options.value;
+      if (!value && this.inputHTML.hasOwnProperty('value')) {
+        value = this.inputHTML.value;
+      }
+      value || (value = this.model.get(this.attribute));
+      if (value) {
+        if (this.inputType === "array") {
+          value = _.castArray(value).join(", ");
+        } else {
+          value = value.toString();
         }
       }
+      this.inputHTML.value = value;
       if (options.hasOwnProperty("max")) {
-        (_base4 = this.inputHTML).maxlength || (_base4.maxlength = options.max);
+        (_base6 = this.inputHTML).maxlength || (_base6.maxlength = options.max);
       }
       pattern = options.match;
       if (_.isRegExp(pattern)) pattern = pattern.toString();
@@ -6702,7 +6747,7 @@
       if (this.autofocus === true) this.inputHTML.autofocus = "true";
       if (this.dynamic) this.inputHTML["data-dynamic"] = "true";
       if (this.inputHTML.placeholder) {
-        (_base5 = this.inputHTML).title || (_base5.title = this.inputHTML.placeholder);
+        (_base7 = this.inputHTML).title || (_base7.title = this.inputHTML.placeholder);
       }
       this.autocomplete = this.inputHTML.autocomplete === true;
       if (this.autocomplete && Tower.View.includeAria) {
@@ -6801,7 +6846,6 @@
     };
 
     Field.prototype.arrayInput = function(key, options) {
-      if (options.value) options.value = _.castArray(options.value).join(", ");
       return this.tag("input", _.extend({
         "data-type": "array"
       }, options));
@@ -8022,6 +8066,19 @@
         return resource;
       });
     },
+    createResource: function(callback) {
+      var _this = this;
+      return this.scoped(function(error, scope) {
+        var resource;
+        if (error) return callback.call(_this, error, null);
+        resource = null;
+        scope.create(_this.params[_this.resourceName], function(error, record) {
+          _this[_this.resourceName] = _this.resource = resource = record;
+          if (callback) return callback.call(_this, null, resource);
+        });
+        return resource;
+      });
+    },
     findResource: function(callback) {
       var _this = this;
       return this.scoped(function(error, scope) {
@@ -8086,7 +8143,7 @@
       if (this.hasParent) {
         this.findParent(function(error, parent) {
           if (error || !parent) {
-            if (callback) return callback.call(_this, error || true);
+            return callbackWithScope(error, Tower.constant(_this.resourceType));
           } else {
             return callbackWithScope(error, parent[_this.collectionName]());
           }
@@ -8118,15 +8175,14 @@
     },
     _create: function(callback) {
       var _this = this;
-      return this.buildResource(function(error, resource) {
+      return this.createResource(function(error, resource) {
         if (!resource) return _this.failure(error, callback);
-        return resource.save(function(error) {
-          return _this.respondWithStatus(_.isBlank(resource.errors), callback);
-        });
+        return _this.respondWithStatus(_.isBlank(resource.errors), callback);
       });
     },
     _show: function(callback) {
       var _this = this;
+      this.__show = true;
       return this.findResource(function(error, resource) {
         return _this.respondWith(resource, callback);
       });

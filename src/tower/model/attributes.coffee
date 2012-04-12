@@ -22,7 +22,19 @@ Tower.Model.Attributes =
     # 
     # @return [Object]
     fields: ->
-      @_fields   ||= {}
+      fields = @metadata().fields
+      
+      switch arguments.length
+        when 0
+          fields
+        when 1
+          @field(name, options) for name, options of arguments[0]
+        else
+          names   = _.args(arguments)
+          options = _.extractOptions(names)
+          @field(name, options) for name in names
+      
+      fields
       
   InstanceMethods:
     # Get a value defined by a {Tower.Model.field}.
@@ -54,7 +66,7 @@ Tower.Model.Attributes =
     # @return [Boolean]
     has: (key) ->
       @attributes.hasOwnProperty(key)
-
+      
     # Set values on the {Tower.Model#attributes} hash.
     # 
     # @example
@@ -190,11 +202,17 @@ Tower.Model.Attributes =
       value             = fields[key].encode(value) if key in fields
       {before, after}   = @changes
       addToSet          = after.$addToSet ||= {}
-    
-      before[key]       = @get(key) unless before.hasOwnProperty(key)
-      addToSet[key]   ||= (addToSet[key] || []).concat()
-      addToSet[key].push value if addToSet[key].indexOf(value) == -1
-    
+      
+      before[key]     ||= @get(key)
+      current           = @get(key) || []
+      addToSet[key]   ||= current.concat()
+      
+      if value && value.hasOwnProperty("$each")
+        for item in value.$each
+          addToSet[key].push(item) if addToSet[key].indexOf(item) == -1
+      else
+        addToSet[key].push(value) if addToSet[key].indexOf(value) == -1
+        
       @attributes[key]  = addToSet[key]
 
 module.exports = Tower.Model.Attributes

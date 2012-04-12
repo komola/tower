@@ -1,5 +1,4 @@
 class App.Page extends Tower.Model
-  @field "id", type: "Id"
   @field "title"
   @field "rating", type: "Integer"#, min: 0, max: 1
   @field "type"
@@ -10,7 +9,7 @@ class App.Page extends Tower.Model
   
   @validates "rating", min: 0, max: 10
   
-  @belongsTo "user", cache: true
+  @belongsTo "user", idCache: true
   @hasMany "comments", as: "commentable", type: "Comment"
   @hasMany "commenters", through: "comments", type: "User"
   

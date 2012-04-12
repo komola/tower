@@ -13,12 +13,16 @@ module.exports =
     vendor: [
       "/vendor/javascripts/underscore"
       "/vendor/javascripts/underscore.string"
+      "/vendor/javascripts/moment"
+      "/vendor/javascripts/geolib"
+      "/vendor/javascripts/validator"
+      "/vendor/javascripts/accounting"
+      "/vendor/javascripts/inflection"
+      "/vendor/javascripts/coffeekup"
       "/vendor/javascripts/prettify"
       "/vendor/javascripts/socket.io"
       "/vendor/javascripts/history"
       "/vendor/javascripts/history.adapter.jquery"
-      "/vendor/javascripts/moment"
-      "/vendor/javascripts/coffeekup"
       "/vendor/javascripts/tower"
       "/vendor/javascripts/bootstrap/bootstrap-transition"
       "/vendor/javascripts/bootstrap/bootstrap-alert"
@@ -36,7 +40,9 @@ module.exports =
     
     development: [
       "/vendor/javascripts/mocha"
+      "/vendor/javascripts/chai"
       "/vendor/javascripts/design.io"
+      "/test/client"
     ]
   
   stylesheets:
@@ -51,4 +57,8 @@ module.exports =
     vendor: [
       "/vendor/stylesheets/bootstrap/bootstrap"
       "/vendor/stylesheets/prettify"
+    ]
+    
+    development: [
+      # "/vendor/stylesheets/mocha"
     ]

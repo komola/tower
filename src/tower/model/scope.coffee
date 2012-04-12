@@ -37,14 +37,14 @@ class Tower.Model.Scope extends Tower.Class
     "excludes",
     "paginate",
     "page",
-    "within",
     "allIn",
     "allOf",
     "alsoIn",
     "anyIn",
     "anyOf",
+    "notIn",
     "near",
-    "notIn"
+    "within"
   ]
 
   # Map of human readable query operators to
@@ -78,6 +78,12 @@ class Tower.Model.Scope extends Tower.Class
     
   constructor: (criteria) ->
     @criteria = criteria
+  
+  # Check if this scope or relation contains this object
+  # 
+  # @param [Object] object an object or array of objects.
+  has: (object) ->
+    @criteria.has(object)
   
   # Builds one or many records based on the scope's criteria.
   # 
@@ -210,6 +216,27 @@ class Tower.Model.Scope extends Tower.Class
     criteria.addIds(args)
       
     criteria.destroy(callback)
+  
+  # Add to set.
+  add: ->
+    criteria        = @compile()
+    args            = _.args(arguments)
+    callback        = _.extractBlock(args)
+    # for `create`, the rest of the arguments must be records
+    
+    criteria.addData(args)
+    
+    criteria.add(callback)
+    
+  # Remove from set.
+  remove: ->
+    criteria        = @compile()
+    args            = _.flatten _.args(arguments)
+    callback        = _.extractBlock(args)
+    
+    criteria.addIds(args)
+      
+    criteria.remove(callback)
   
   # Updates one or many records based on the scope's criteria.
   # 

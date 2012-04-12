@@ -49,6 +49,21 @@ class Tower.Model.Attribute
       
   @time: @date
   @datetime: @date
+  
+  @geo:
+    from: (serialized) ->
+      serialized
+      
+    to: (deserialized) ->
+      switch _.kind(deserialized)
+        when "array"
+          lat: deserialized[0], lng: deserialized[1]
+        when "object"
+          lat: deserialized.lat || deserialized.latitude
+          lng: deserialized.lng || deserialized.longitude
+        else
+          deserialized = deserialized.split(/,\ */)
+          lat: parseFloat(deserialized[0]), lng: parseFloat(deserialized[1])
         
   @array:
     from: (serialized) ->
@@ -57,9 +72,19 @@ class Tower.Model.Attribute
     to: (deserialized) ->
       Tower.Model.Attribute.array.from(deserialized)
   
-  constructor: (owner, name, options = {}) ->
+  # @option options [Boolean|String|Function] set If `set` is a boolean, it will look for a method
+  #   named `"set#{field.name}"` on the prototype.  If it's a string, it will call that method on the prototype.
+  #   If it's a function, it will call that function as if it were on the prototype.
+  constructor: (owner, name, options = {}, block) ->
     @owner        = owner
     @name         = key = name
+    
+    if typeof options == 'string'
+      options       = type: options
+    else if typeof options == 'function'
+      block         = options
+      options       = {}
+    
     @type         = options.type || "String"
     
     if typeof @type != "string"
@@ -67,7 +92,7 @@ class Tower.Model.Attribute
       @type     = "Array"
     
     @encodingType = switch @type
-      when "Id", "Date", "Array", "String", "Integer", "Float", "BigDecimal", "Time", "DateTime", "Boolean", "Object", "Number"
+      when "Id", "Date", "Array", "String", "Integer", "Float", "BigDecimal", "Time", "DateTime", "Boolean", "Object", "Number", "Geo"
         @type
       else
         "Model"
@@ -75,8 +100,23 @@ class Tower.Model.Attribute
     serializer = Tower.Model.Attribute[Tower.Support.String.camelize(@type, true)]
     
     @_default = options.default
+    
+    unless @_default
+      if @type == "Geo"
+        @_default = lat: null, lng: null
+      else if @type == 'Array'
+        @_default = []
+        
+    if @type == 'Geo' && !options.index
+      index       = {}
+      index[name] = "2d"
+      options.index = index
+        
     @get      = options.get || (serializer.from if serializer)
     @set      = options.set || (serializer.to if serializer)
+    
+    @get = "get#{Tower.Support.String.camelize(name)}" if @get == true
+    @set = "set#{Tower.Support.String.camelize(name)}" if @set == true
     
     if Tower.accessors
       Object.defineProperty @owner.prototype, name,
@@ -84,6 +124,26 @@ class Tower.Model.Attribute
         configurable: true
         get: -> @get(key)
         set: (value) -> @set(key, value)
+    
+        
+    validations           = {}
+    
+    for key, normalizedKey of Tower.Model.Validator.keys
+      validations[normalizedKey] = options[key] if options.hasOwnProperty(key)
+    
+    @owner.validates name, validations if _.isPresent(validations)
+        
+    if options.index
+      if options.index == true
+        @owner.index(name)
+      else
+        @owner.index(options.index)
+        
+  validators: ->
+    result = []
+    for validator in @owner.validators()
+      result.push(validator) if validator.attributes.indexOf(@name) != -1
+    result
 
   defaultValue: (record) ->
     _default = @_default

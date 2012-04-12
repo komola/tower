@@ -22,6 +22,7 @@ class Tower.Model.Criteria extends Tower.Class
     @_fields      = options.fields
     @_uniq        = options.uniq
     @_eagerLoad   = options.eagerLoad || {}
+    @_near        = options.near
     # options.findOne = conditions.id && conditions.id.hasOwnProperty("$in") && conditions.id.$in.length == 1
     
   # Must pass in array, and it will give you either an array or object back,
@@ -60,6 +61,9 @@ class Tower.Model.Criteria extends Tower.Class
       
   eagerLoad: (object) ->
     @_eagerLoad = _.extend @_eagerLoad, object
+    
+  has: (object) ->
+    false
   
   # Join commands.
   # 
@@ -217,6 +221,36 @@ class Tower.Model.Criteria extends Tower.Class
     page    = options.page || 1
     @limit(limit)
     @offset((page - 1) * limit)
+  
+  # https://github.com/manuelbieh/Geolib/blob/master/geolib.js
+  # @example Find near specific coordinates.
+  #   App.User.near(location: [40.741404, -73.988135])
+  #   App.User.near(location: lat: 40.741404, lng: -73.988135)
+  # 
+  # @example Uses default location field for model.
+  #   App.User.near(40.741404, -73.988135)
+  near: (coordinates) ->
+    @where(coordinates: $near: coordinates)
+  
+  # @todo Make an awesome geo api.
+  # 
+  # @example
+  #   App.User.near(coordinates).within(5, "miles")
+  #   App.User.near(coordinates).within(distance: 5, unit: "km")
+  # 
+  # @example Search within a box
+  #   App.User.within([40.73083, -73.99756], [40.741404,  -73.988135])
+  #   App.User.within(lowerLeft: [40.73083, -73.99756], upperRight: [40.741404,  -73.988135])
+  # 
+  # @example Search within a circle
+  #   App.User.within(center: [50, 50], radius: 10)
+  #   App.User.within(center: [50, 50], radius: 10)
+  # 
+  # @example Search within a polygon
+  #   App.User.within([ 10, 20 ], [ 10, 40 ], [ 30, 40 ], [ 30, 20 ])
+  #   App.User.within(a : { x : 10, y : 20 }, b : { x : 15, y : 25 }, c : { x : 20, y : 20 })
+  within: (bounds) ->
+    @where(coordinates: $maxDistance: bounds)
     
   build: (callback) ->
     store       = @store
@@ -307,7 +341,8 @@ class Tower.Model.Criteria extends Tower.Class
     else
       @store.find @, (error, records) =>
         records = @export(records) if !error && records.length
-        callback.call @, error, records
+        callback.call @, error, records if callback
+        records
   
   # hack
   findOne: (callback) ->
@@ -326,6 +361,12 @@ class Tower.Model.Criteria extends Tower.Class
     
   _exists: (callback) ->
     @store.exists @, callback
+    
+  # add to set
+  add: (callback) ->
+    
+  # remove from set
+  remove: (callback) ->
     
   # Show query that will be used for the datastore.
   # @todo
@@ -352,18 +393,20 @@ class Tower.Model.Criteria extends Tower.Class
     @_includes  = criteria._includes
     @_joins     = _.extend {}, criteria._joins
     @_eagerLoad = _.extend {}, criteria._eagerLoad
+    @_near      = criteria._near
     @
     
   toJSON: ->
-    where: @_where
-    order: @_order
-    offset: @_offset
-    limit: @_limit
-    fields: @_fields
-    except: @_except
-    includes: @_includes
-    joins: @_joins
+    where:     @_where
+    order:     @_order
+    offset:    @_offset
+    limit:     @_limit
+    fields:    @_fields
+    except:    @_except
+    includes:  @_includes
+    joins:     @_joins
     eagerLoad: @_eagerLoad
+    near:      @_near
     
   # Compiled result from the {#where} arguments.
   # 
@@ -430,7 +473,7 @@ class Tower.Model.Criteria extends Tower.Class
           unless callback
             throw error if error
           else
-            callback.call @, error, records if callback
+            callback.call @, error, @export(records) if callback
   
   _array: (existing, orNull) ->
     if existing && existing.length then existing.concat() else (if orNull then null else [])

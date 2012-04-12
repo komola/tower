@@ -1,5 +1,6 @@
 {
   "name":                 "<%= app.name %>",
+  "private":              true,
   "version":              "0.0.1",
   "description":          "<%= app.description %>",
   "homepage":             "http://<%= user.username %>.github.com/<%= app.name %>",
@@ -35,7 +36,7 @@
   "dependencies": {
     "underscore":             ">= 0.0.1",
     "underscore.string":      ">= 0.0.1",
-    "mongodb":                ">= 0.9.7-1.4",
+    "mongodb":                ">= 0.9.9-7",
     "redis":                  ">= 0.7.1",
     "coffee-resque":          ">= 0.1.4",
     "coffee-script":          ">= 1.1.3",
@@ -59,7 +60,7 @@
     "forever":                ">= 0.8.5"
   },
   "scripts": {
-    "test":                   "mocha $(find test -name \"*Test.coffee\") -r coffee-script $@",
+    "test":                   "./node_modules/mocha/bin/mocha $(find test -name \"*Test.coffee\")",
     "prepublish":             "npm prune; rm -rf node_modules/*/{test,example,bench}*"
   }
 }

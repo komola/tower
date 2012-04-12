@@ -1,34 +1,59 @@
-# @module
+# @mixin
 Tower.Controller.Resourceful =
   ClassMethods:
+    # Set information about resource/model for this controller.
+    # 
+    # @example Pass in a string
+    #   class App.UsersController extends App.ApplicationController
+    #     @resource "person"
+    #
+    # @example Pass in an object
+    #   class App.UsersController extends App.ApplicationController
+    #     @resource name: "person", type: "User", collectionName: "people"
+    # 
+    # @return [Function] Return this controller.
     resource: (options) ->
-      @_resourceName    = options.name if options.hasOwnProperty("name")
-      @_resourceType    = options.type if options.hasOwnProperty("type")
-      @_collectionName  = options.collectionName if options.hasOwnProperty("collectionName")
+      metadata = @metadata()
+      
+      if typeof options == "string"
+        options                 =
+          name: options
+          type: Tower.Support.String.camelize(options)
+          collectionName: _.pluralize(options)
+      
+      metadata.resourceName     = options.name if options.name
+      
+      if options.type
+        metadata.resourceType   = options.type
+        metadata.resourceName   = @_compileResourceName(options.type) unless options.name
+      
+      metadata.collectionName   = options.collectionName if options.collectionName
+      
       @
-
-    resourceType: ->
-      @_resourceType ||= Tower.Support.String.singularize(@name.replace(/(Controller)$/, ""))
-
-    resourceName: ->
-      return @_resourceName if @_resourceName
-      parts = @resourceType().split(".")
-      @_resourceName = Tower.Support.String.camelize(parts[parts.length - 1], true)
-
-    collectionName: ->
-      @_collectionName ||= Tower.Support.String.camelize(@name.replace(/(Controller)$/, ""), true)
-
-    belongsTo: (key, options = {}) ->
-      if @_belongsTo
-        @_belongsTo = @_belongsTo.concat()
-      else
-        @_belongsTo = []
-        
-      return @_belongsTo unless key
+    
+    # Specify the parent model for this resourceful controller,
+    # corresponding to a nested path.
+    # 
+    # @example
+    #   class App.CommentsController extends App.ApplicationController
+    #     @belongsTo "post" # /posts/1/comments
+    # 
+    # @example With options
+    #   class App.CommentsController extends App.ApplicationController
+    #     @belongsTo "article", type: "Post"
+    # 
+    # @return [Array<Object>] Returns belongsTo array
+    belongsTo: (key, options) ->
+      belongsTo = @metadata().belongsTo
+      
+      return belongsTo unless key
+      
+      options ||= {}
         
       options.key = key
       options.type ||= Tower.Support.String.camelize(options.key)
-      @_belongsTo.push(options)
+      
+      belongsTo.push(options)
       
     hasParent: ->
       belongsTo = @belongsTo()
@@ -209,6 +234,9 @@ Tower.Controller.Resourceful =
       callbackWithScope null, Tower.constant(@resourceType)
       
     undefined
+    
+  resourceKlass: ->
+    Tower.constant(Tower.namespaced(@resourceType))
 
   # @todo Default failure implemtation for create, update, and destory.
   # 

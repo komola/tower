@@ -17,18 +17,18 @@ Tower.Store.Memory.Finders =
         result.push(record) if @matches(record, conditions)
         # break if result.length >= limit
 
-      result  = @sort(result, sort) if sort.length
+      result    = @sort(result, sort) if sort.length
       
-      endIndex   = startIndex + (limit || result.length) - 1
+      endIndex  = startIndex + (limit || result.length) - 1
       
-      result  = result[startIndex..endIndex]
+      result    = result[startIndex..endIndex]
     else
       for key, record of records
         result.push(record)
     
     #result = criteria.export(result) if result.length
     
-    callback.call(@, null, result) if callback
+    result = callback.call(@, null, result) if callback
     
     result
 

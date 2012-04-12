@@ -45,10 +45,10 @@ Tower.Controller.Events =
       Tower.Support.String.pluralize(Tower.Support.String.camelize(@name.replace(/(Controller)$/, ""), false))
 
     addSocketEventHandler: (name, handler, options) ->
-      @io ||= Tower.Application.instance().io.connect(@socketNamespace())
+      @io ||= Tower.Application.instance().io.connect("/" + @socketNamespace())
 
       @io.on name, (data) =>
-        @_dispatch undefined, handler, data
+        @_dispatch @io, handler, params: data
 
     # http://www.ravelrumba.com/blog/event-delegation-jquery-performance/
     addDomEventHandler: (name, handler, options) ->
@@ -62,10 +62,11 @@ Tower.Controller.Events =
       if method
         method.call @, name, handler, options
       else
-        $(@dispatcher).on name, options.target, (event) => @_dispatch handler, options
+        $(@dispatcher).on name, options.target, (event) =>
+          @_dispatch event, handler, options
       @
 
-    _dispatch: (handler, options = {}) ->
+    _dispatch: (event, handler, options = {}) ->
       controller = @instance()
 
       controller.elements ||= {}

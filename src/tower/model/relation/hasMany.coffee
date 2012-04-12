@@ -9,10 +9,12 @@ class Tower.Model.Relation.HasMany extends Tower.Model.Relation
   class @Criteria extends @Criteria
     isHasMany: true
     
-    # @before "create", "compileForCreate"
-    # @before "update", "compileForUpdate"
-    # @before "destroy", "compileForDestroy"
-    # @before "find", "compileForFind"
+    # @todo
+    has: (object) ->
+      object  = _.castArray(object)
+      records = []
+      return false unless records.length
+      return false
     
     validate: (callback) ->
       unless @owner.isPersisted()
@@ -70,7 +72,7 @@ class Tower.Model.Relation.HasMany extends Tower.Model.Relation
       @_runBeforeCreateCallbacksOnStore =>
         @_create (error, record) =>
           unless error
-            #@_cacheRecords(record)
+            #@_idCacheRecords(record)
             
             @_runAfterCreateCallbacksOnStore =>
               # add the id to the array on the owner record after it's created
@@ -100,7 +102,11 @@ class Tower.Model.Relation.HasMany extends Tower.Model.Relation
         @_destroy (error, record) =>
           unless error
             @_runAfterDestroyCallbacksOnStore =>
-              callback.call @, error, record if callback
+              if @updateOwnerRecord()
+                @owner.updateAttributes @ownerAttributesForDestroy(record), (error) =>
+                  callback.call @, error, record if callback
+              else
+                callback.call @, error, record if callback
           else
             callback.call @, error, record if callback
             
@@ -114,6 +120,20 @@ class Tower.Model.Relation.HasMany extends Tower.Model.Relation
               callback.call @, error, record if callback
           else
             callback.call @, error, record if callback
+
+    # add to set
+    add: (callback) ->
+      throw new Error unless @relation.idCache
+      
+      @owner.updateAttributes @ownerAttributes(), (error) =>
+        callback.call @, error, @data if callback
+
+    # remove from set
+    remove: (callback) ->
+      throw new Error unless @relation.idCache
+      
+      @owner.updateAttributes @ownerAttributesForDestroy(), (error) =>
+        callback.call @, error, @data if callback
     
     compile: ->
       owner           = @owner
@@ -124,19 +144,19 @@ class Tower.Model.Relation.HasMany extends Tower.Model.Relation
       
       data            = {}
       
-      #if relation.cache
-      #  #defaults[relation.cacheKey] = $in: [@owner.get("id")]
-      #  defaults.id = $in: @owner.get(relation.cacheKey)
+      #if relation.idCache
+      #  #defaults[relation.idCacheKey] = $in: [@owner.get("id")]
+      #  defaults.id = $in: @owner.get(relation.idCacheKey)
       #  criteria.where(defaults)
       #else
       #  defaults[relation.foreignKey] = $in: @owner.get('id')
       #  criteria.where(defaults)
       
-      if inverseRelation && inverseRelation.cache
-        array = data[inverseRelation.cacheKey] || []
+      if inverseRelation && inverseRelation.idCache
+        array = data[inverseRelation.idCacheKey] || []
         array.push(id) if array.indexOf(id) == -1
-        data[inverseRelation.cacheKey] = array
-      else if relation.foreignKey
+        data[inverseRelation.idCacheKey] = array
+      else if relation.foreignKey && !relation.idCache
         data[relation.foreignKey]     = id if id != undefined
         # must check here if owner is instance of foreignType
         data[relation.foreignType]  ||= owner.constructor.name if relation.foreignType
@@ -150,38 +170,64 @@ class Tower.Model.Relation.HasMany extends Tower.Model.Relation
       @compile()
     
     compileForUpdate: ->
-      @compile()
+      @compileForFind()
+      
+      @returnArray = true unless @ids && @ids.length
       
     compileForDestroy: ->
-      @compile()
+      @compileForFind()
       
     compileForFind: ->
       @compile()
       
+      relation = @relation
+      
+      if relation.idCache
+        @where(id: $in: @owner.get(relation.idCacheKey))
+      
     updateOwnerRecord: ->
       relation = @relation
-      !!(relation && (relation.cache || relation.counterCache))
+      !!(relation && (relation.idCache || relation.counterCache))
       
     ownerAttributes: (record) ->
       relation = @relation
       
-      if relation.cache
+      if relation.idCache
         push    = {}
-        push[relation.cacheKey] = record.get("id")
+        data    = if record then record.get("id") else @store._mapKeys('id', @data)
+        push[relation.idCacheKey] = if _.isArray(data) then {$each: data} else data
       if relation.counterCacheKey
         inc     = {}
         inc[relation.counterCacheKey] = 1
         
       updates   = {}
-      updates["$push"]  = push if push
+      # probably should be $addToSet
+      updates["$addToSet"]  = push if push
       updates["$inc"]   = inc if inc
       
       updates
       
+    ownerAttributesForDestroy: (record) ->
+      relation = @relation
+      
+      if relation.idCache
+        pull    = {}
+        # tmp hack
+        pull[relation.idCacheKey] = if @ids && @ids.length then @ids else @owner.get(relation.idCacheKey)
+      if relation.counterCacheKey
+        inc     = {}
+        inc[relation.counterCacheKey] = -1
+        
+      updates   = {}
+      # probably should be $addToSet
+      updates["$pullAll"]  = pull if pull
+      updates["$inc"]   = inc if inc
+      
+      updates
+    
     # @private
-    _cacheRecords: (records) ->
+    _idCacheRecords: (records) ->
       rootRelation = @owner.relation(@relation.name)
       rootRelation.criteria.records = rootRelation.criteria.records.concat _.castArray(records)
-
 
 module.exports = Tower.Model.Relation.HasMany

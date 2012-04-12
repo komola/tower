@@ -5,6 +5,13 @@ io      = null
 
 # Entry point to your application.
 class Tower.Application extends Tower.Engine
+  @before "initialize", "setDefaults"
+
+  setDefaults: ->
+    Tower.Model.default "store", Tower.Store.MongoDB
+    Tower.Model.field "id", type: "Id"
+    true
+
   @autoloadPaths: [
     "app/helpers",
     "app/models",
@@ -155,6 +162,7 @@ class Tower.Application extends Tower.Engine
       @io     ||= require('socket.io').listen(@server)
       @server.listen Tower.port, =>
         _console.info("Tower #{Tower.env} server listening on port #{Tower.port}")
+        value.applySocketEventHandlers() for key, value of @ when key.match /(Controller)$/
         @watch()
 
   run: ->

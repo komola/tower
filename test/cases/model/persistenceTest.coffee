@@ -1,5 +1,3 @@
-require '../../config'
-
 user      = null
 
 describeWith = (store) ->
@@ -134,4 +132,4 @@ describeWith = (store) ->
       test 'reload'
 
 describeWith(Tower.Store.Memory)
-describeWith(Tower.Store.MongoDB)
+describeWith(Tower.Store.MongoDB) unless Tower.client

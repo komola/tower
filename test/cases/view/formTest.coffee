@@ -1,8 +1,5 @@
-require '../../config'
-
 view = null
 user = null
-
 
 describeWith = (store) ->
   describe "Tower.View.Form (Tower.Store.#{store.name})", ->
@@ -262,4 +259,4 @@ describeWith = (store) ->
   ###
 
 describeWith(Tower.Store.Memory)
-describeWith(Tower.Store.MongoDB)
+describeWith(Tower.Store.MongoDB) unless Tower.client

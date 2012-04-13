@@ -116,9 +116,10 @@ class Tower.Application extends Tower.Engine
 
       requirePaths File.files("#{Tower.root}/app/helpers")
       requirePaths File.files("#{Tower.root}/app/models")
-      require "#{Tower.root}/app/controllers/applicationController"
-      for path in ["controllers", "mailers", "observers", "presenters", "middleware"]
 
+      require "#{Tower.root}/app/controllers/applicationController"
+
+      for path in ["controllers", "mailers", "observers", "presenters", "middleware"]
         requirePaths File.files("#{Tower.root}/app/#{path}")
 
       done()
@@ -182,11 +183,10 @@ class Tower.Application extends Tower.Engine
 
   watch: ->
     forever = require("forever")
-
     child = new (forever.Monitor)("node_modules/design.io/bin/design.io",
       max:    1
       silent: false
-      options: []
+      options: []#["-d", "#{Tower.root}", "-w", "#{Tower.root}/Watchfile"]
     )
 
     child.start()

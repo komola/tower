@@ -1,5 +1,3 @@
-require '../../config'
-
 user      = null
 
 describeWith = (store) ->
@@ -23,4 +21,4 @@ describeWith = (store) ->
       
       done()
         
-describeWith(Tower.Store.MongoDB)
+describeWith(Tower.Store.MongoDB) unless Tower.client

@@ -6,11 +6,11 @@ Tower.View.Rendering =
       type  = type[type.length - 1].split(".")
       type  = type[1..-1].join()
       options.type  = if type != '' then type else @constructor.engine
-      
+
     options.type        ||= @constructor.engine
     options.layout      = @_context.layout() if !options.hasOwnProperty("layout") && @_context.layout
     options.locals      = @_renderingContext(options)
-    
+
     @_renderBody options, (error, body) =>
       return callback(error, body) if error
       @_renderLayout(body, options, callback)
@@ -72,7 +72,7 @@ Tower.View.Rendering =
         hardcode        = _.extend(hardcode, tags: coffeekup.tags)
         locals.hardcode = hardcode
         locals._ = _
-        
+
         result = coffeekup.render string, locals
       catch error
         e = error
@@ -80,6 +80,7 @@ Tower.View.Rendering =
       callback e, result
     else if options.type
       mint = require "mint"
+      string = string() if typeof string == 'function'
       engine = mint.engine(options.type)
       # need to fix this on mint.js repo
       if engine.match(/(eco|mustache)/)

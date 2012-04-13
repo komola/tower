@@ -18,6 +18,9 @@ Tower.modules =
   geo:        require 'geolib'
   inflector:  require 'inflection'
   async:      require 'async'
+  superagent: require 'superagent'
+  mime:       require 'mime'
+  mint:       require 'mint'
 
 require './support'
 require './application'
@@ -35,17 +38,19 @@ require './server/middleware'
 require './server/command'
 require './server/generator'
 
+Tower.watch = true
+
 Tower.View.store(new Tower.Store.FileSystem(["app/views"]))
 Tower.root                = process.cwd()
 Tower.publicPath          = process.cwd() + "/public"
 Tower.publicCacheDuration = 60 * 1000
 Tower.render              = (string, options = {}) ->
-  require("mint").render(options.type, string, options)
+  Tower.modules.mint.render(options.type, string, options)
 
 Tower.domain              = "localhost"
 
 Tower.date = ->
-  require('moment')(arguments...)._d
+  _.toDate arguments...
 
 Tower.run = (argv) ->
   (new Tower.Command.Server(argv)).run()

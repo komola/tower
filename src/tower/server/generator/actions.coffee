@@ -1,13 +1,14 @@
-File  = require('pathfinder').File
-_path = require('path')
-fs    = require('fs')
-_url  = require('url')
-rest  = require('restler')
+File        = require('pathfinder').File
+_path       = require('path')
+fs          = require('fs')
+_url        = require('url')
+superagent  = require('superagent')
+wrench      = require('wrench')
 
 File.mkdirpSync = (dir) ->
   dir = _path.resolve(_path.normalize(dir))
   try
-    fs.mkdirSync(dir, 0755)
+    fs.mkdirSync(dir, parseInt("0755"))
   catch e
     switch e.errno
       when 47
@@ -25,22 +26,28 @@ Tower.Generator.Actions =
     error = ->
       console.log "Error downloading #{url}"
 
-    rest.get(url).on('error', error).on 'complete', (data) =>
-      @log "create", path
-      File.write path, data
+    superagent.get url, (response) =>
+      if response.ok
+        @log "create", path
+        File.write path, response.text
+      else
+        error()
 
   log: (action, path) ->
+    return if @silent
     return if action == "create" && File.exists(path)
 
     key = switch action
       when "destroy"
-        '   \x1b[36mremove\x1b[0m'
+        `'   \x1b[36mremove\x1b[0m'`
       else
-        '   \x1b[36m' + action + '\x1b[0m'
+        `'   \x1b[36m'` + action + `'\x1b[0m'`
 
     console.log("#{key} : #{File.relativePath(path)}")
 
   injectIntoFile: (path, options, callback) ->
+    string = ""
+    
     if typeof options == "string"
       string    = options
       options   = callback
@@ -48,43 +55,46 @@ Tower.Generator.Actions =
     if typeof options == "function"
       callback  = options
       options   = {}
+      
+    options ||= {}
 
     path    = @destinationPath(path)
     data    = File.read(path)
 
     if typeof callback == "function"
       data = callback.call @, data
-    else if options.after
-      data = data.replace options.after, (_) -> "#{_}#{string}"
     else if options.before
       data = data.replace options.before, (_) -> "#{string}#{_}"
+    else if options.after
+      data = data.replace options.after, (_) -> "#{_}#{string}"
+    else # after
+      data = data + string
 
     @log "update", path
 
     fs.writeFileSync path, data
 
-  readFile: (file) ->
+  readFile: (file, callback) ->
+    fs.readFile(file, "utf-8", callback)
 
-  createFile: (path, data) ->
+  createFile: (path, data, callback) ->
     path = @destinationPath(path)
     @log "create", path
-    File.write path, data
+    File.write path, data, callback
 
   destinationPath: (path) ->
+    return path if path.match(/^\//)
     _path.normalize File.join(@destinationRoot, @currentDestinationDirectory, path)
 
-  file: (file, data) ->
-    @createFile(file, data)
-
-  createDirectory: (name) ->
+  createDirectory: (name, callback) ->
     path = @destinationPath(name)
     @log "create", path
-    File.mkdirpSync(path)
+    result = File.mkdirpSync(path)
+    callback.call @, result if callback
+    result
 
-  directory: (name) ->
-    @createDirectory(name)
-
-  emptyDirectory: (name) ->
+  emptyDirectory: (path) ->
+    #wrench.rmdirSyncRecursive(@destinationPath(path))
 
   inside: (directory, sourceDirectory, block) ->
     if typeof sourceDirectory == "function"
@@ -106,7 +116,7 @@ Tower.Generator.Actions =
 
     data = File.read(source)
 
-    @createFile destination, data, options
+    @createFile destination, data, block
 
   linkFile: (source) ->
     {args, options, block} = @_args(arguments, 1)
@@ -174,24 +184,11 @@ Tower.Generator.Actions =
       content.gsub(flag, args..., block)
       File.open path, 'wb', (file) -> file.write(content)
 
-  uncommentLines: (path, flag) ->
-    flag = if flag.hasOwnProperty("source") then flag.source else flag
-
-    @gsubFile(path, /^(\s*)#\s*(.*#{flag})/, '\1\2', args...)
-
-  commentLines: (path, flag) ->
-    {args, options, block} = @_args(arguments, 2)
-
-    flag = if flag.hasOwnProperty("source") then flag.source else flag
-
-    @gsubFile(path, /^(\s*)([^#|\n]*#{flag})/, '\1# \2', args...)
-
   removeFile: (path, options = {}) ->
-    return unless behavior == "invoke"
-    path  = File.expandPath(path, destination_root)
-
-    @sayStatus "remove", @relativeToOriginalDestinationRoot(path), options.fetch("verbose", true)
-    File.removeRecursively(path) if !options.pretend && File.exists?(path)
+    # return unless behavior == "invoke"
+    path  = @destinationPath(path)
+    #@sayStatus "remove", @relativeToOriginalDestinationRoot(path), options.fetch("verbose", true)
+    # File.removeRecursively(path) if !options.pretend && File.exists?(path)
 
   removeDir: ->
     @removeFile arguments...
@@ -225,5 +222,8 @@ Tower.Generator.Actions =
 
   findInSourcePaths: (path) ->
     File.expandPath(File.join(@sourceRoot, "templates", @currentSourceDirectory, path))
+    
+Tower.Generator.Actions.file = Tower.Generator.Actions.createFile
+Tower.Generator.Actions.directory = Tower.Generator.Actions.createDirectory
 
 module.exports = Tower.Generator.Actions

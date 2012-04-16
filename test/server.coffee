@@ -16,7 +16,6 @@ Tower.env             = "test"
 Tower.View.loadPaths  = ["./test/example/app/views"]
 Tower.port            = 3001
 
-require '../lib/tower/controller/tst'
 require '../lib/tower/server/generator/tst'
 
 Tower.request = (method, action, options, callback) ->
@@ -40,7 +39,7 @@ Tower.request = (method, action, options, callback) ->
     callback.call @, @response
 
 # redirectTo action: "show"
-Tower.Controller::redirectTo = (options = {}) ->
+Tower.Controller::redirectToOld = (options = {}) ->
   callback  = @callback
   
   if typeof options == "string"
@@ -87,6 +86,7 @@ beforeEach (done) ->
     done()
 
 after (done) ->
+  return done()
   if process.platform == "darwin" # tmp for travis.ci
     require("child_process").exec "open http://localhost:3000", =>
       done()

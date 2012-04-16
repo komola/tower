@@ -18,16 +18,20 @@ Tower.Controller.Instrumentation =
       else
         superMetadata = {}
 
-      resourceType            = Tower.Support.String.singularize(@name.replace(/(Controller)$/, ""))
+      resourceType            = _.singularize(@name.replace(/(Controller)$/, ""))
       resourceName            = @_compileResourceName(resourceType)
       collectionName          = Tower.Support.String.camelize(@name.replace(/(Controller)$/, ""), true)
-
       params                  = if superMetadata.params then _.clone(superMetadata.params) else {}
-      callbacks               = if superMetadata.callbacks then _.clone(superMetadata.callbacks) else {}
       renderers               = if superMetadata.renderers then _.clone(superMetadata.renderers) else {}
       mimes                   = if superMetadata.mimes then _.clone(superMetadata.mimes) else {json: {}, html: {}}
       helpers                 = if superMetadata.helpers then superMetadata.helpers.concat() else []
       belongsTo               = if superMetadata.belongsTo then superMetadata.belongsTo.concat() else []
+      
+      callbacks               = {}
+      
+      if superMetadata.callbacks
+        for action, callbackChain of superMetadata.callbacks
+          callbacks[action] = callbackChain.clone()
 
       result = @metadata[className]    =
         className:            className
@@ -56,7 +60,12 @@ Tower.Controller.Instrumentation =
       @cookies  = @request.cookies  || {}
       @query    = @request.query    || {}
       @session  = @request.session  || {}
-      @format   = @params.format    ||= require('mime').extension(@request.header("content-type")) || "html"
+      
+      unless @params.format
+        try @params.format = require('mime').extension(@request.header("content-type"))
+        @params.format ||= "html"
+        
+      @format   = @params.format
       @action   = @params.action
       @headers  = {}
       @callback = next
@@ -79,7 +88,7 @@ Tower.Controller.Instrumentation =
     clear: ->
       @request  = null
       @response = null
-      @headers  = null
+      #@headers  = null
 
     metadata: ->
       @constructor.metadata()

@@ -10,6 +10,10 @@ Follow me [@viatropos](http://twitter.com/viatropos).
 
 Docs are a work in progress.
 
+- **IRC**: #towerjs on irc.freenode.net
+- **Ask a question**: http://stackoverflow.com/questions/tagged/towerjs
+- **Issues**: http://github.com/viatropos/tower/issues
+
 ## Default Development Stack
 
 - MongoDB (database)
@@ -353,7 +357,7 @@ html ->
     yields "bottom"
 ```
 
-The default templating engine is [CoffeeKup](http://coffeekup.org/), which is pure CoffeeScript.  It's much more powerful than Jade, and it's just as performant if not more so.  You can set Jade or any other templating engine as the default by setting `Tower.View.engine = "jade"` in `config/application`.  Tower uses [Mint.js](http://github.com/viatropos/mint.js), which is a normalized interface to most of the Node.js templating languages.
+The default templating engine is [CoffeeCup](http://easydoc.org/coffeecup), which is pure CoffeeScript.  It's much more powerful than Jade, and it's just as performant if not more so.  You can set Jade or any other templating engine as the default by setting `Tower.View.engine = "jade"` in `config/application`.  Tower uses [Mint.js](http://github.com/viatropos/mint.js), which is a normalized interface to most of the Node.js templating languages.
 
 ## Styles
 

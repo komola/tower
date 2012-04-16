@@ -128,11 +128,12 @@ task 'build', ->
 Tower.version = "#{VERSION}"
 
 """
+  fs.writeFileSync './dist/tower.coffee', content
   mint.coffee content, bare: false, (error, result) ->
     result = JS_COPYRIGHT + result
     _console.error error.stack if error
-    fs.writeFile "./dist/tower.js", result
-    fs.writeFile './test/exampe/public/javascripts/vendor/javascripts/tower.js', result
+    fs.writeFileSync "./dist/tower.js", result
+    fs.writeFileSync './test/example/public/javascripts/vendor/javascripts/tower.js', result
     unless error
       #result = obscurify(result)
 

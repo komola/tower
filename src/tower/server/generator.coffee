@@ -18,6 +18,7 @@ class Tower.Generator extends Tower.Class
     klass
 
   constructor: (options = {}) ->
+    options.program ||= {}
     _.extend @, options
 
     unless @appName
@@ -38,14 +39,18 @@ class Tower.Generator extends Tower.Class
           @view       = @buildView(@modelName)
           @controller = @buildController(@modelName)
         @run()
+        
+  run: ->
 
 require './generator/actions'
 require './generator/configuration'
+require './generator/helpers'
 require './generator/resources'
 require './generator/shell'
 
 Tower.Generator.include Tower.Generator.Actions
 Tower.Generator.include Tower.Generator.Configuration
+Tower.Generator.include Tower.Generator.Helpers
 Tower.Generator.include Tower.Generator.Resources
 Tower.Generator.include Tower.Generator.Shell
 

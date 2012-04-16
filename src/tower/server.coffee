@@ -10,6 +10,9 @@ Tower.version = JSON.parse(require("fs").readFileSync(require("path").normalize(
 
 Tower.logger    = _console
 
+require 'ember-metal'
+require 'ember-runtime'
+
 # external libraries, to get around having to use `require` in the browser.
 Tower.modules =
   validator:  require 'validator'
@@ -31,6 +34,7 @@ require './model'
 require './view'
 require './controller'
 require './server/controller'
+require './controller/tst'
 require './http'
 require './server/mailer'
 require './middleware'
@@ -48,9 +52,6 @@ Tower.render              = (string, options = {}) ->
   Tower.modules.mint.render(options.type, string, options)
 
 Tower.domain              = "localhost"
-
-Tower.date = ->
-  _.toDate arguments...
 
 Tower.run = (argv) ->
   (new Tower.Command.Server(argv)).run()

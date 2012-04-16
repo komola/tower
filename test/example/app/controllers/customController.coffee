@@ -1,4 +1,5 @@
 class App.CustomController extends Tower.Controller
+  @layout false
   @respondTo "html", "json", "yaml"
   
   @before("setCurrentUser")
@@ -15,15 +16,15 @@ class App.CustomController extends Tower.Controller
     
   testCreateCallback: ->
     @testCreateCallbackCalled = true
-    @render action: 'helloWorld'
+    @render text: 'testCreateCallback!'
     
   testUpdateCallback: ->
     @testUpdateCallbackCalled = true
-    @render action: 'helloWorld'
+    @render text: 'testUpdateCallback!'
     
   testNoCallback: ->
     @testNoCallbackCalled = true
-    @render action: 'helloWorld'
+    @render text: 'testNoCallback!'
   
   renderUser: ->
     
@@ -99,7 +100,6 @@ class App.CustomController extends Tower.Controller
   
   # "ported":
   renderHelloWorld: ->
-    console.log "HERE!"
     @render template: "test/helloWorld"
   
   renderHelloWorldWithLastModifiedSet: ->

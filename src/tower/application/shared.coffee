@@ -5,7 +5,6 @@ _.extend Tower,
   root:       "/"
   publicPath: "/"
   case:       "camelcase"
-  namespace:  null
   accessors:  typeof(window) == "undefined"
   logger:     if typeof(_console) != 'undefined' then _console else console
   structure:  "standard"
@@ -161,6 +160,9 @@ _.extend Tower,
 
   clone: (object) ->
     _.extend({}, object)
+    
+  date: ->
+    _.toDate arguments...
 
 if Tower.client
   Tower.request = (method, path, options, callback) ->

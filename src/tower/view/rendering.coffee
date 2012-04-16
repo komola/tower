@@ -69,13 +69,15 @@ Tower.View.Rendering =
         hardcode        = {}
         for helper in Tower.View.helpers
           hardcode      = _.extend(hardcode, helper)
-        hardcode        = _.extend(hardcode, tags: coffeekup.tags)
+        tags = coffeekup.tags
+        hardcode        = _.extend(hardcode, tags: tags)
         locals.hardcode = hardcode
         locals._ = _
-
+        
         result = coffeekup.render string, locals
       catch error
         e = error
+        console.log e.stack
 
       callback e, result
     else if options.type
@@ -109,8 +111,12 @@ Tower.View.Rendering =
     return template unless typeof template == "string"
     options   = {path: template, ext: ext, prefixes: prefixes}
     store     = @constructor.store()
-    path      = store.findPath(options)
-    path    ||= store.defaultPath(options)
+    # tmp
+    if typeof store.findPath != 'undefined'
+      path      = store.findPath(options)
+      path    ||= store.defaultPath(options)
+    else
+      path      = template
     #cachePath = path.replace(/\.\w+$/, "")
     cachePath = path
     result    = @constructor.cache[cachePath] || require('fs').readFileSync(path, 'utf-8').toString()

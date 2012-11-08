@@ -93,6 +93,7 @@
   },
   "scripts": {
     "test": "make test",
-    "docs": "codo"
+    "docs": "codo",
+    "postinstall": "npm install git://github.com/viatropos/coffee-script.git --force"
   }
 }
